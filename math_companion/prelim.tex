@@ -1,4 +1,5 @@
-\section{ Preliminaries}
+\newpage
+\section{Preliminaries}
 
 \subsection{Fields}
 
@@ -12,22 +13,17 @@ Fields of size $q$ are denoted as $\FFF_q$ or simply $\FFF$. Currently supported
 
 \subsection{Regime-specific bounds}
 
+The proximity parameter $\delta$ and list size $\ell$ depend on the regime (UDR or JBR). These quantities appear in all subsequent error terms.
 
+\subsubsection{Proximity parameter}\label{sec:fri_optimal_distance_udr}\label{sec:fri_optimal_distance_jbr}
 
-\subsubsection{Proximity parameter }\label{sec:fri_optimal_distance_udr}\label{sec:fri_optimal_distance_jbr}
-
-
-\begin{verbatim}unique_decoding.py/get_proximity_parameter()\end{verbatim}
-
-In UDR
+In UDR\footnote{See \texttt{proxgaps/unique\_decoding.py:get\_proximity\_parameter()}.}
 \begin{equation}\label{eq:pp_udr}
     \delta_U(\rho) =(1-\rho)/2
 \end{equation}
 
 
-In JBR we compute the $\delta$ differently.
-
-\begin{verbatim}johnson_bound.py/get_proximity_parameter()\end{verbatim}
+In JBR we compute the $\delta$ differently.\footnote{See \texttt{proxgaps/johnson\_bound.py:get\_proximity\_parameter()}.}
 
 \begin{equation}\label{eq:pp_jbr}
     \delta_J(\rho,N,q) =\begin{cases}
@@ -38,13 +34,12 @@ In JBR we compute the $\delta$ differently.
 
 
 \subsubsection{List sizes} \label{sec:fri_list_sizes}
-\begin{verbatim}unique_decoding.py/get_max_list_size()\end{verbatim}
+In UDR the list size is trivially\footnote{See \texttt{proxgaps/unique\_decoding.py:get\_max\_list\_size()}.}
 $$
 \ell = 1
 $$
 
-\begin{verbatim}johnson_bound.py/get_max_list_size()\end{verbatim}
-We compute
+In JBR we compute\footnote{See \texttt{proxgaps/johnson\_bound.py:get\_max\_list\_size()}.}
 $$
 \ell(\rho,N) = \frac{1}{2(1-\sqrt{\rho}-\delta)\sqrt{\rho}}.
 $$
@@ -53,30 +48,11 @@ $$
 \subsubsection{Batching errors}\label{sec:batch}
 We define batching error functions
 $$
-\ebatchpowJ(\rho,N,q,B), \quad \ebatchpowU(\rho,N,q,B),\quad \ebatchlinU(\rho,N,q),\quad \ebatchpowU(\rho,N,q,B), \quad \ebatchmulU(\rho, N, q, B)
+\ebatchlinU(\rho,N,q),\quad \ebatchpowU(\rho,N,q,B),\quad \ebatchmulU(\rho, N, q, B), \quad \ebatchlinJ(\rho,N,q),\quad \ebatchpowJ(\rho,N,q,B)
 $$
-For JBR :
+For UDR:
 \begin{itemize}
-    \item Compute proximity parameter $\delta$ as in \eqref{eq:pp_jbr}:
-
-    \item Compute $m$ as in \verb|get_m()|:
-    $$
-    m =0.5+\max\left(\left\lceil\frac{\sqrt{\rho}}{1-\sqrt{\rho}-\delta} \right\rceil,3\right)
-    $$
-    \item Compute linear error\footnote{Code refers to Theorem 4.2 from BCHKS25}:
-    $$
-    \ebatchlinJ(\rho,N,q) = \frac{N\left(2m^5+3m\delta\rho\right)+3m\rho}{3\rho^{1.5}q}
-    $$
-    \item Compute powers error:
-    $$
-    \ebatchpowJ(\rho,N,q,B) = \ebatchlinJ( \rho,N,q)\cdot(B-1)
-    $$
-\end{itemize}
-
-
-For UDR :
-\begin{itemize}
-    \item Compute linear error\footnote{Code refers to Theorem 4.1 from BCHKS25}:
+    \item Compute linear error\footnote{See \texttt{proxgaps/unique\_decoding.py:get\_error\_linear()}. Code refers to Theorem 4.1 from BCHKS25.}:
     $$
     \ebatchlinU(\rho,N,q) = \frac{1 - \rho}{2} \cdot \frac{N}{q\rho} + \frac{1}{q}
     $$
@@ -88,19 +64,35 @@ For UDR :
     $$
     \ebatchmulU(\rho,N,q,B) = \ebatchlinU(\rho,N,q) \cdot \lceil \log_2 B \rceil
     $$
+\end{itemize}
 
+For JBR:
+\begin{itemize}
+    \item Compute proximity parameter $\delta$ as in \eqref{eq:pp_jbr}:
+
+    \item Compute $m$\footnote{See \texttt{proxgaps/johnson\_bound.py:get\_m()}.}:
+    $$
+    m =0.5+\max\left(\left\lceil\frac{\sqrt{\rho}}{1-\sqrt{\rho}-\delta} \right\rceil,3\right)
+    $$
+    \item Compute linear error\footnote{See \texttt{proxgaps/johnson\_bound.py:get\_error\_linear()}. Code refers to Theorem 4.2 from BCHKS25.}:
+    $$
+    \ebatchlinJ(\rho,N,q) = \frac{N\left(2m^5+3m\delta\rho\right)+3m\rho}{3\rho^{1.5}q}
+    $$
+    \item Compute powers error:
+    $$
+    \ebatchpowJ(\rho,N,q,B) = \ebatchlinJ( \rho,N,q)\cdot(B-1)
+    $$
 \end{itemize}
 
 
 
 \subsubsection{DEEP-ALI errors}\label{sec:fri-deep-ali}
-\begin{verbatim}circuit.py/get_DEEP_ALI_errors()\end{verbatim}
 
-The DEEP-ALI soundness error (with exception of the list size) and notation are taken from \cite[Section 5.2]{habock2022summary}:
+The DEEP-ALI soundness error\footnote{See \texttt{zkvms/circuit.py:\_get\_DEEP\_ALI\_errors()}.} (with exception of the list size) and notation are taken from \cite[Section 5.2]{habock2022summary}:
 \begin{itemize}
-    \item Number of AIR constraints~\cite[p.15]{habock2022summary}: $C=$ \verb|num_constraints|
-    \item Overall AIR degree: $d =$ \verb|AIR_max_degree|
-    \item Trace increase constant \cite[Remark 7]{habock2022summary}: $m_c$ \verb|max_combo| (set to 2 in ~\cite{habock2022summary} )
+    \item Number of AIR constraints~\cite[p.15]{habock2022summary}: $C=$ \texttt{num\_constraints}
+    \item Overall AIR degree: $d =$ \texttt{AIR\_max\_degree}
+    \item Trace increase constant \cite[Remark 7]{habock2022summary}: $m_c=$ \texttt{max\_combo} (set to 2 in~\cite{habock2022summary})
     \item Trace length: $N$ (denoted by $|H|$ in ~\cite{habock2022summary})
     \item List size: $\ell$ as in \cref{sec:fri_list_sizes}, replaces the $L^{+}$ in ~\cite{habock2022summary}
 \end{itemize}
@@ -116,5 +108,5 @@ Since our DEEP-ALI bound uses multi-point quotients (a.k.a.\ combo batching), we
     N + m_c < (1-\theta)\cdot \frac{N}{\rho},
 \end{equation}
 where $\rho$ is the FRI rate and $\theta$ is the proximity parameter determined by the chosen regime.
-This condition is checked in code via an assertion in \verb|circuit.py/_get_DEEP_ALI_errors()|.
+This condition is checked in code via an assertion.\footnote{See \texttt{zkvms/circuit.py:\_get\_DEEP\_ALI\_errors()}.}
 

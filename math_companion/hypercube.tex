@@ -34,14 +34,12 @@ $$\sum_{x \in H} \left( \text{eq}(r, x) \cdot \sum_{i=1}^C \lambda^i \cdot C_i(t
 
 where $H = \{0, 1\}^{\log \ntrace}$ is the boolean hypercube. \\
 
-This soundness error is calculated in \verb|zkvms/circuit.py/get_security_levels()|. \\
-
 Following the analysis in Appendix A.2 of \cite{cryptoeprint:2024/108}, the random linear combination from $\text{eq}(r, x)$ adds a $(\log \ntrace) / q$ soundness error. The random linear combination from $\lambda^i$ adds a $C / q$ soundness error. Finally, the sumcheck routine adds a $((d + 1) \log \ntrace) / q$ soundness error.
 Combined, the overall soundness error from the zerocheck is at most
 
 $$\frac{C + (d + 2) \log \ntrace}{q}$$
 
-The remaining soundness error comes from reducing the evaluation claims for the zerocheck into a single evaluation claim for the dense representation. This soundness error is calculated in \verb|pcs/jagged.py/__get_reduction_error()|.\\
+The remaining soundness error comes from reducing the evaluation claims for the zerocheck into a single evaluation claim for the dense representation.\footnote{See \texttt{pcs/jagged.py:\_get\_reduction\_error()}.}\\
 
 First, the random linear combination using the $\text{eq}$ polynomial for the $\btrace$ evaluations add an at most
 
@@ -56,6 +54,7 @@ Here, $\log \text{trace} = \log (\nstack \cdot \bstack) = \log \nstack + \log \b
 
 These bounds are pessimistic, and the round-by-round soundness errors are lower.
 
+\newpage
 \section{Jagged PCS proof size}
 
 As in the security level calculation, the underlying dense PCS proof size can be analyzed with FRI's proof size with trace length $\nstack$ and batch size $\bstack$. Here, sizes of the other parts of the PCS proof are discussed.

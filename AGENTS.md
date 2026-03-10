@@ -26,7 +26,7 @@ pytest
 
 `soundcalc/zkvms/` - The module containing all the zkVM projects that we support. Each project has its own directory, and we also support the central classes `zkVM` and `Circuit`.
 
-`math_companion/` - A LaTeX-based PDF that acts as the math companion of the math used throughout the code.
+`math_companion/` - A LaTeX-based PDF that acts as the math companion of the math used throughout the code. Build with `make` inside the directory. Function references in footnotes use the format `path/file.py:function_name()`.
 
 ## Workflows
 

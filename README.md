@@ -23,6 +23,7 @@ We currently support the following zkEVMs:
 - [Pico](reports/pico.md)
 - [OpenVM](reports/openvm.md)
 - [Airbender](reports/airbender.md)
+- [SP1](reports/sp1.md)
 
 We support the following polynomial commitment schemes:
 - FRI
@@ -33,8 +34,8 @@ We support the following security regimes (see below for explanation of regimes)
 - Johnson Bound Regime (JBR)
 
 We support the following lookup protocols:
-- LogUp
-- LogUp-GKR
+- [LogUp](https://eprint.iacr.org/2022/1530)
+- [LogUp-GKR](https://eprint.iacr.org/2023/1284)
 
 ## Background
 
@@ -78,7 +79,7 @@ We may integrate the compilation to the non-interactive setting (classically and
 A flurry of new results on proximity gaps were published in November 2025 (see [Nico's summary](https://blog.zksecurity.xyz/posts/proximity-conjecture/)).
 
 In soundcalc we have incorporated:
-- The [improved JBR security bounds](https://github.com/asn-d6/soundcalc/commit/0f91fba90661af1a7c9fa6114e6eb41e79d18ebf) of [BCHKS25](https://eprint.iacr.org/2025/2055.pdf)
+- The improved [UDR](https://github.com/ethereum/soundcalc/commit/89d4f0f72d215199013d1b61c795450ef9eb7060) and [JBR](https://github.com/asn-d6/soundcalc/commit/0f91fba90661af1a7c9fa6114e6eb41e79d18ebf) security bounds of [BCHKS25](https://eprint.iacr.org/2025/2055.pdf)
 - The [removal of the CBR regime](https://github.com/asn-d6/soundcalc/commit/ffaeb81dbb450b7c905c90338af8304c2bbfeb60), following the results of [DG25](https://eprint.iacr.org/2025/2010.pdf) and [CS25](https://eprint.iacr.org/2025/2046.pdf)
 
 ## Project Layout

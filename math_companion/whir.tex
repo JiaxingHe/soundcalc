@@ -37,9 +37,7 @@
 
 In order to compute the bits of security in UDR and JBR regimes, we compute the following error terms using the parameters from \cref{sec:whir_notation}.
 
-Computed in \verb|get_security_levels_for_regime()|.
-
-For any error term:
+For any\footnote{See \texttt{pcs/whir.py:get\_pcs\_security\_levels()}.} error term:
 \[
   \lambda(\epsilon)
   = \lfloor-\log_2\epsilon\rfloor.
@@ -59,8 +57,7 @@ Overall security:
 
 \subsection{Batching Error \(\epsilon_{\mathrm{batch}}\)}
 
-This computes the batching error with parameters from \cref{sec:whir_notation}.
-\verb|get_batching_error()|
+The batching error\footnote{See \texttt{pcs/whir.py:\_get\_batching\_error()}.} uses parameters from \cref{sec:whir_notation}.
 
 In the Johnson Bound Regime (JBR) we proceed as follows:
 \begin{itemize}
@@ -96,9 +93,9 @@ In both regimes we do as follows after grinding:
 \]
 \subsection{Folding Error}
 
-This section computes the error of a folding round as in \verb|whir_based_vm.py/epsilon_fold()|, referring to Theorem 5.2 of the WHIR paper.
+The folding error per round refers to Theorem 5.2 of the WHIR paper.\footnote{See \texttt{pcs/whir.py:\_epsilon\_fold()}.}
 
-For iteration \(i\in[M]\) and folding round \(s\in[k]\) in JBR we do\footnote{The function \texttt{epsilon\_fold()}
+For iteration \(i\in[M]\) and folding round \(s\in[k]\) in JBR we do\footnote{The function \texttt{pcs/whir.py:\_epsilon\_fold()}
 counts folding rounds from \(1\) to \(k\), whereas here we count from \(0\) to \(k-1\).    }:
 \begin{itemize}
     \item % \verb|get_list_size_for_iteration_and_round()|
@@ -133,7 +130,7 @@ After grinding:
 
 \subsection{OOD error }
 
-This computes the Out-of-Domain error  as in \verb|whir_based_vm.py/epsilon_out()|.
+The Out-of-Domain error\footnote{See \texttt{pcs/whir.py:\_epsilon\_out()}.} is computed as follows.
 
 For iteration \(i\in\{1,2,\ldots,M-1\}\)
 \begin{itemize}
@@ -159,9 +156,7 @@ Base error in JBR (cf. \cref{sec:fri_list_sizes}):
 \end{itemize}
 \subsection{Shift Error}
 
-\verb|epsilon_shift()|
-
-For iteration \(i\in\{1,2,\ldots,M-1\}\) in JBR
+For iteration\footnote{See \texttt{pcs/whir.py:\_epsilon\_shift()}.} \(i\in\{1,2,\ldots,M-1\}\) in JBR
 \begin{itemize}
     \item   Get $\delta$ for the iteration using \eqref{eq:pp_jbr}:
     $$
@@ -199,10 +194,9 @@ Same procedure in UDR:
 \]
 
 
-\subsection{Final Round Error }
-\verb|epsilon_final()|
+\subsection{Final Round Error}
 
-JBR:
+In JBR:\footnote{See \texttt{pcs/whir.py:\_epsilon\_final()}.}
 \begin{itemize}
     \item  Get $\delta$ for the iteration using \eqref{eq:pp_jbr}:
     $$
@@ -228,9 +222,10 @@ After grinding:
   = (1 - \delta_{M-1})^{t_{M-1}}
     \cdot 2^{-g^{\mathrm{qry}}_{M-1}}.
 \]
+\newpage
 \section{WHIR Proof Size Calculations}
 
-This section summarizes the proof-size formula computed in \verb|get_proof_size_bits()|.
+This section summarizes the proof-size formula.\footnote{See \texttt{pcs/whir.py:get\_proof\_size\_bits()}.}
 
 \subsection{Initial Function  Size}
 \[

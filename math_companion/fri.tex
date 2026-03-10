@@ -28,9 +28,7 @@ Global parameters used in the FRI analysis:
 
 \subsection{Security level for a FRI-based VM}\label{sec:fri_security_level}
 
-The security level is calculated in \verb|zkvms/fri_based_vm.py/get_security_levels()|.
-
-It is done separately for two different regimes: UDR and JBR --- using the same procedure \verb|fri_based_vm.py/get_security_levels_for_regime()|:
+The security level is calculated separately for two regimes: UDR and JBR, using the same procedure.\footnote{See \texttt{pcs/fri.py:get\_pcs\_security\_levels()}.}
 \begin{enumerate}
     \item Calculate the FRI round-by-round soundness errors $\efrirbr $:
     $$
@@ -51,10 +49,9 @@ $$
 
 \subsection{Batching Error }
 
-This computes the batching error with parameters from \cref{sec:whir_notation}.
-\verb|get_batching_error()|
+The batching error\footnote{See \texttt{pcs/fri.py:\_get\_batching\_error()}.} uses the functions from \cref{sec:batch}.
 
-In the Johnson Bound Regime (JBR) we compute base error as:
+In the Johnson Bound Regime (JBR) we compute the base error as:
 \[
 \ebatch^{\text{base,JBR}} =
 \begin{cases}
@@ -74,9 +71,7 @@ Whereas in the UDR we compute base error:
 
 \subsection{Commit phase errors}
 
-This is calculated in \verb|fri_based_vm.py/get_commit_phase_error()|.
-
-For round $i\in[r_{FRI}]$ we compute the dimension $N_i$ as
+For round\footnote{See \texttt{pcs/fri.py:\_get\_commit\_phase\_error()}.} $i\in[r_{FRI}]$ we compute the dimension $N_i$ as
 $$
 N_i = \frac{N}{\prod_{j\in[i]}k_j}
 $$
@@ -91,17 +86,15 @@ Then the folding error in round $i$ is computed as
 
 \subsection{Query error}
 
-This is calculated in \verb|fri_based_vm.py/get_query_phase_error()|.
-
-Query phase error:
+The query phase error\footnote{See \texttt{pcs/fri.py:\_get\_query\_phase\_error()}.} is:
 \begin{equation}
     \epsilon_{\mathrm{query}} = (1-\theta)^{t}\cdot 2^{-\bgriq}
 \end{equation}
 
+\newpage
 \section{FRI proof size}
 
-This calculation is performed in \verb|fri.py/get_FRI_proof_size_bits()|.
-The FRI proof contains two parts: Merkle roots, and one "openings" per query,
+The FRI proof\footnote{See \texttt{pcs/fri.py:get\_FRI\_proof\_size\_bits()}.} contains two parts: Merkle roots, and one "openings" per query,
   where an "opening" is a Merkle path for each folding layer.
      For each layer we count the size that
      this layer contributes, which includes the root and all Merkle paths.
@@ -121,7 +114,7 @@ The proof size is calculated as follows:
     \end{multline}
 where $eMP(n, t, b, \bfield, \bhash)$ is the expected Merkle path size for $t$ queries to the $n$ leaf tree,
 where each leaf has $b$ elements of $\bfield$ bits each,
-calculated as \verb|get_size_of_merkle_multi_proof_bits_expected()|
+calculated as\footnote{See \texttt{common/utils.py:get\_size\_of\_merkle\_multi\_proof\_bits\_expected()}.}
 \begin{equation}
     eMP(n,t, b,\bfield,\bhash) =   \underbrace{t\cdot b\cdot \bfield}_{\text{ size of all}}
     +\bhash\sum_{1\leq d\leq \lceil \log_{2} n\rceil}\lceil 2^d\left((1-2^{-d})^t-(1-2^{1-d})^t\right)\rceil
