@@ -11,6 +11,11 @@ hash_size_bits = 256
 # The Leaf and Internal aggregation circuit dimensions vary based on the dimensions of the child circuits it is aggregating.
 # Below we provide parameters based on a near-worst case analysis of the circuits.
 
+
+# The circuit data below were extracted using this procedure:
+#  https://github.com/ethereum/soundcalc/pull/74#issuecomment-4032053280
+#
+
 [[circuits]]
 name = "app"
 # blowup_factor = 2
