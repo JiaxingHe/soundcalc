@@ -11,9 +11,7 @@ from soundcalc.proxgaps.proxgaps_regime import ProximityGapsRegime
 from soundcalc.proxgaps.unique_decoding import UniqueDecodingRegime
 
 
-SWIRL_SECURITY_BITS_TARGET = 100
 SWIRL_WHIR_K = 4
-SWIRL_WHIR_MAX_LOG_FINAL_POLY_LEN = 10
 SWIRL_QUERY_PHASE_POW_BITS = 20
 SWIRL_MAX_CONSTRAINT_DEGREE = 4
 
@@ -24,42 +22,24 @@ class SWIRLWhirRoundConfig:
 
 
 @dataclass(frozen=True)
-class SWIRLWhirProximityMode:
-    kind: str
-    m: int | None = None
-
-    def build_regime(self, field: FieldParams) -> ProximityGapsRegime:
-        if self.kind == "unique":
-            return UniqueDecodingRegime(field)
-        if self.kind == "list":
-            if self.m is None:
-                raise ValueError("list-decoding mode requires multiplicity m")
-            return JohnsonBoundRegime(field, explicit_m=self.m)
-        raise ValueError(f"Unknown SWIRL proximity mode: {self.kind}")
-
-    def whir_query_security_bits(self, num_queries: int, log_inv_rate: int) -> float:
-        rho = 2.0 ** (-log_inv_rate)
-        if self.kind == "unique":
-            max_agreement = (1.0 + rho) / 2.0
-        elif self.kind == "list":
-            if self.m is None:
-                raise ValueError("list-decoding mode requires multiplicity m")
-            max_agreement = math.sqrt(rho) * (1.0 + 1.0 / (2.0 * self.m))
-        else:
-            raise ValueError(f"Unknown SWIRL proximity mode: {self.kind}")
-
-        max_agreement = max(max_agreement, math.ldexp(1.0, -1022))
-        return -(num_queries * math.log2(max_agreement))
-
-
-@dataclass(frozen=True)
 class SWIRLWhirConfig:
     k: int
     rounds: list[SWIRLWhirRoundConfig]
     mu_pow_bits: int
     query_phase_pow_bits: int
     folding_pow_bits: int
-    proximity: SWIRLWhirProximityMode
+    explicit_regime: str
+    explicit_m: int | None = None
+
+    def choose_regime_for_this_circuit(self, field: FieldParams) -> ProximityGapsRegime:
+        """Use the toml config to pick regime for this circuit"""
+        if self.explicit_regime == "unique":
+            return UniqueDecodingRegime(field)
+        if self.explicit_regime == "list":
+            if self.explicit_m is None:
+                raise ValueError("list-decoding mode requires multiplicity m")
+            return JohnsonBoundRegime(field, explicit_m=self.explicit_m)
+        raise ValueError(f"Unknown SWIRL explicit_regime: {self.explicit_regime}")
 
 
 @dataclass(frozen=True)
@@ -105,31 +85,6 @@ class SWIRLSystemParams:
         return self.l_skip + self.n_stack
 
 
-@dataclass(frozen=True)
-class SWIRLWhirDetails:
-    mu_batching_bits: float
-    fold_rbr_bits: float
-    proximity_gaps_bits: float
-    sumcheck_bits: float
-    ood_rbr_bits: float
-    shift_rbr_bits: float
-    query_bits: float
-    gamma_batching_bits: float
-
-
-@dataclass(frozen=True)
-class SWIRLSoundnessResult:
-    logup_bits: float
-    gkr_sumcheck_bits: float
-    gkr_batching_bits: float
-    zerocheck_sumcheck_bits: float
-    constraint_batching_bits: float
-    stacked_reduction_bits: float
-    whir_bits: float
-    whir_details: SWIRLWhirDetails
-    total_bits: float
-
-
 def _challenge_field_bits(field: FieldParams) -> float:
     return field.field_extension_degree * math.log2(field.p)
 
@@ -167,23 +122,12 @@ def build_swirl_system_params(
     log_blowup: int,
     folding_pow_bits: int,
     mu_pow_bits: int,
-    proximity: SWIRLWhirProximityMode,
+    explicit_regime: str,
+    explicit_m: int | None,
+    num_queries: list[int],
     logup: SWIRLLogUpSecurityParameters,
-    security_bits_target: int = SWIRL_SECURITY_BITS_TARGET,
 ) -> SWIRLSystemParams:
-    protocol_security_level = security_bits_target - SWIRL_QUERY_PHASE_POW_BITS
-    log_stacked_height = l_skip + n_stack
-    num_rounds = math.ceil(
-        max(log_stacked_height - SWIRL_WHIR_MAX_LOG_FINAL_POLY_LEN, 0) / SWIRL_WHIR_K
-    )
-
-    rounds: list[SWIRLWhirRoundConfig] = []
-    log_inv_rate = log_blowup
-    for _round in range(num_rounds):
-        per_query_bits = proximity.whir_query_security_bits(1, log_inv_rate)
-        num_queries = math.ceil(protocol_security_level / per_query_bits)
-        rounds.append(SWIRLWhirRoundConfig(num_queries=num_queries))
-        log_inv_rate += SWIRL_WHIR_K - 1
+    rounds = [SWIRLWhirRoundConfig(num_queries=n) for n in num_queries]
 
     return SWIRLSystemParams(
         l_skip=l_skip,
@@ -196,7 +140,8 @@ def build_swirl_system_params(
             mu_pow_bits=mu_pow_bits,
             query_phase_pow_bits=SWIRL_QUERY_PHASE_POW_BITS,
             folding_pow_bits=folding_pow_bits,
-            proximity=proximity,
+            explicit_regime=explicit_regime,
+            explicit_m=explicit_m,
         ),
         logup=logup,
         max_constraint_degree=SWIRL_MAX_CONSTRAINT_DEGREE,
@@ -213,9 +158,9 @@ def calculate_swirl_soundness(
     max_log_trace_height: int,
     num_trace_columns: int,
     max_interactions_per_air: int,
-) -> SWIRLSoundnessResult:
+) -> dict[str, float]:
     challenge_field_bits = _challenge_field_bits(field)
-    regime = params.whir.proximity.build_regime(field)
+    regime = params.whir.choose_regime_for_this_circuit(field)
     whir_errors = whir.get_pcs_soundness_errors(regime)
 
     mu_batching_bits = math.inf
@@ -304,18 +249,27 @@ def calculate_swirl_soundness(
         min_shift_rbr_bits,
     )
 
-    whir_details = SWIRLWhirDetails(
-        mu_batching_bits=mu_batching_bits,
-        fold_rbr_bits=min_fold_rbr_bits,
-        proximity_gaps_bits=min_proximity_gaps_bits,
-        sumcheck_bits=min_sumcheck_bits,
-        ood_rbr_bits=min_ood_bits,
-        shift_rbr_bits=min_shift_rbr_bits,
-        query_bits=min_query_bits,
-        gamma_batching_bits=min_gamma_batching_bits,
-    )
-
-    total_bits = min(
+    levels: dict[str, float] = {
+        "logup": logup_bits,
+        "gkr_sumcheck": gkr_sumcheck_bits,
+        "gkr_batching": gkr_batching_bits,
+        "zerocheck_sumcheck": zerocheck_bits,
+        "constraint_batching": constraint_batching_bits,
+        "stacked_reduction": stacked_reduction_bits,
+        "whir": min_whir_bits,
+        "whir.query": min_query_bits,
+        "whir.proximity_gaps": min_proximity_gaps_bits,
+        "whir.sumcheck": min_sumcheck_bits,
+        "whir.fold_rbr": min_fold_rbr_bits,
+        "whir.ood_rbr": min_ood_bits,
+        "whir.gamma_batching": min_gamma_batching_bits,
+        "whir.shift_rbr": min_shift_rbr_bits,
+        "whir.mu_batching": mu_batching_bits,
+    }
+    # Note: "total" combines only the top-level bounds (including the aggregate
+    # "whir"), not the individual "whir.*" breakdown entries, matching the
+    # structure of the math.
+    levels["total"] = min(
         logup_bits,
         gkr_sumcheck_bits,
         gkr_batching_bits,
@@ -324,15 +278,4 @@ def calculate_swirl_soundness(
         stacked_reduction_bits,
         min_whir_bits,
     )
-
-    return SWIRLSoundnessResult(
-        logup_bits=logup_bits,
-        gkr_sumcheck_bits=gkr_sumcheck_bits,
-        gkr_batching_bits=gkr_batching_bits,
-        zerocheck_sumcheck_bits=zerocheck_bits,
-        constraint_batching_bits=constraint_batching_bits,
-        stacked_reduction_bits=stacked_reduction_bits,
-        whir_bits=min_whir_bits,
-        whir_details=whir_details,
-        total_bits=total_bits,
-    )
+    return levels

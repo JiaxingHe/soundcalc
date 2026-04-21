@@ -9,7 +9,6 @@ from soundcalc.circuits.swirl import (
     SWIRLCircuit,
     SWIRLCircuitConfig,
     SWIRLLogUpSecurityParameters,
-    SWIRLWhirProximityMode,
     build_swirl_system_params,
 )
 from soundcalc.pcs.whir import WHIR, WHIRConfig
@@ -30,10 +29,8 @@ def load() -> zkVM:
 
     circuits = []
     for section in config.get("circuits", []):
-        if section["whir_proximity"] == "unique":
-            proximity = SWIRLWhirProximityMode(kind="unique")
-        else:
-            proximity = SWIRLWhirProximityMode(kind="list", m=section["whir_m"])
+        explicit_regime = section["explicit_regime"]
+        explicit_m = section.get("explicit_m") if explicit_regime == "list" else None
 
         params = build_swirl_system_params(
             l_skip=section["l_skip"],
@@ -42,7 +39,9 @@ def load() -> zkVM:
             log_blowup=section["log_blowup"],
             folding_pow_bits=section["whir_folding_pow_bits"],
             mu_pow_bits=section["whir_mu_pow_bits"],
-            proximity=proximity,
+            explicit_regime=explicit_regime,
+            explicit_m=explicit_m,
+            num_queries=section["whir_num_queries"],
             logup=logup,
         )
         whir = WHIR(WHIRConfig(

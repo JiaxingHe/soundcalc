@@ -109,7 +109,7 @@ class zkVM:
                 max_combo=section["opening_points"],
                 lookups=lookups if lookups else None,
                 grinding_deep=section.get("grinding_deep", 0),
-                udr_only = section.get("udr_only", False),
+                explicit_regime=section.get("explicit_regime"),
             ))
             circuits.append(circuit)
 
@@ -151,8 +151,8 @@ class zkVM:
                 num_constraints=section["num_constraints"],
                 AIR_max_degree=section["air_max_degree"],
                 max_combo=section["opening_points"],
-                udr_only = section.get("udr_only", False),
                 lookups=lookups if lookups else None,
+                explicit_regime=section.get("explicit_regime"),
             ))
             circuits.append(circuit)
 
@@ -168,6 +168,12 @@ class zkVM:
         circuits = []
 
         for section in config.get("circuits", []):
+            # Jagged currently only supports the unique-decoding regime.
+            explicit_regime = section.get("explicit_regime")
+            if explicit_regime is not None and explicit_regime != "unique":
+                raise ValueError(
+                    f"Jagged only supports explicit_regime=\"unique\", got {explicit_regime!r}"
+                )
             dense_pcs = FRI(FRIConfig(
                 hash_size_bits=config["zkevm"]["hash_size_bits"],
                 rho=section["rho"],

@@ -27,10 +27,11 @@ class DeepAliConfig:
     gap_to_radius: float | None = None
     # Optional list of LogUp instances for lookup soundness
     lookups: list[LogUp] | None = None
-    # Whether or not to only analyze unique decoding regime.
-    udr_only: bool = False
     # Proof of Work grinding during DEEP (expressed in bits of security)
     grinding_deep: int = 0
+    # If set, restrict analysis to a single regime ("unique" or "list").
+    # If None, both regimes are analyzed.
+    explicit_regime: str | None = None
 
 
 class DeepAliCircuit(Circuit):
@@ -49,20 +50,26 @@ class DeepAliCircuit(Circuit):
         self.num_constraints = config.num_constraints
         self.AIR_max_degree = config.AIR_max_degree
         self.max_combo = config.max_combo
-        self.udr_only = config.udr_only
         self._lookups = config.lookups or []
         self.grinding_deep = config.grinding_deep
+        self.explicit_regime = config.explicit_regime
 
     def get_lookups(self) -> list[LogUp]:
         """Returns the list of lookups for this circuit."""
         return self._lookups
 
     def get_security_levels(self) -> dict[str, dict[str, int]]:
-        regimes = [
-            UniqueDecodingRegime(self.field),
-        ]
-        if self.udr_only == False:
-            regimes.append(JohnsonBoundRegime(self.field, gap_to_radius=self.gap_to_radius))
+        if self.explicit_regime == "unique":
+            regimes = [UniqueDecodingRegime(self.field)]
+        elif self.explicit_regime == "list":
+            regimes = [JohnsonBoundRegime(self.field, gap_to_radius=self.gap_to_radius)]
+        elif self.explicit_regime is None:
+            regimes = [
+                UniqueDecodingRegime(self.field),
+                JohnsonBoundRegime(self.field, gap_to_radius=self.gap_to_radius),
+            ]
+        else:
+            raise ValueError(f"Unknown explicit_regime: {self.explicit_regime!r}")
 
         result = {}
         for regime in regimes:

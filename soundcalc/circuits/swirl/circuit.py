@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from soundcalc.circuits.circuit import Circuit
-from soundcalc.circuits.swirl.calculator import SWIRLSoundnessResult, SWIRLSystemParams, calculate_swirl_soundness
+from soundcalc.circuits.swirl.calculator import SWIRLSystemParams, calculate_swirl_soundness
 from soundcalc.common.fields import FieldParams
 from soundcalc.pcs.whir import WHIR
 
@@ -33,43 +33,19 @@ class SWIRLCircuit(Circuit):
         self.max_log_trace_height = config.max_log_trace_height
         self.num_trace_columns = config.num_trace_columns
         self.max_interactions_per_air = config.max_interactions_per_air
-        self._soundness_result: SWIRLSoundnessResult | None = None
-
-    def get_soundness_result(self) -> SWIRLSoundnessResult:
-        if self._soundness_result is None:
-            self._soundness_result = calculate_swirl_soundness(
-                params=self.params,
-                field=self.field,
-                whir=self.pcs,
-                max_num_constraints_per_air=self.max_num_constraints_per_air,
-                num_airs=self.num_airs,
-                max_log_trace_height=self.max_log_trace_height,
-                num_trace_columns=self.num_trace_columns,
-                max_interactions_per_air=self.max_interactions_per_air,
-            )
-        return self._soundness_result
 
     def get_security_levels(self) -> dict[str, dict[str, float]]:
-        result = self.get_soundness_result()
-        levels = {
-            "logup": round(result.logup_bits, 1),
-            "gkr_sumcheck": round(result.gkr_sumcheck_bits, 1),
-            "gkr_batching": round(result.gkr_batching_bits, 1),
-            "zerocheck_sumcheck": round(result.zerocheck_sumcheck_bits, 1),
-            "constraint_batching": round(result.constraint_batching_bits, 1),
-            "stacked_reduction": round(result.stacked_reduction_bits, 1),
-            "whir": round(result.whir_bits, 1),
-            "whir.query": round(result.whir_details.query_bits, 1),
-            "whir.proximity_gaps": round(result.whir_details.proximity_gaps_bits, 1),
-            "whir.sumcheck": round(result.whir_details.sumcheck_bits, 1),
-            "whir.fold_rbr": round(result.whir_details.fold_rbr_bits, 1),
-            "whir.ood_rbr": round(result.whir_details.ood_rbr_bits, 1),
-            "whir.gamma_batching": round(result.whir_details.gamma_batching_bits, 1),
-            "whir.shift_rbr": round(result.whir_details.shift_rbr_bits, 1),
-            "whir.mu_batching": round(result.whir_details.mu_batching_bits, 1),
-            "total": round(result.total_bits, 1),
-        }
-        return {"SWIRL": levels}
+        levels = calculate_swirl_soundness(
+            params=self.params,
+            field=self.field,
+            whir=self.pcs,
+            max_num_constraints_per_air=self.max_num_constraints_per_air,
+            num_airs=self.num_airs,
+            max_log_trace_height=self.max_log_trace_height,
+            num_trace_columns=self.num_trace_columns,
+            max_interactions_per_air=self.max_interactions_per_air,
+        )
+        return {"SWIRL": {k: round(v, 1) for k, v in levels.items()}}
 
     def get_parameter_summary(self) -> str:
         lines = [

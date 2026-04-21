@@ -1,7 +1,6 @@
 from soundcalc.circuits.swirl.calculator import (
     SWIRLLogUpSecurityParameters,
     SWIRLSystemParams,
-    SWIRLWhirProximityMode,
     build_swirl_system_params,
     calculate_swirl_soundness,
 )
@@ -12,7 +11,6 @@ __all__ = [
     "SWIRLCircuitConfig",
     "SWIRLLogUpSecurityParameters",
     "SWIRLSystemParams",
-    "SWIRLWhirProximityMode",
     "build_swirl_system_params",
     "calculate_swirl_soundness",
 ]
