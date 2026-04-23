@@ -10,7 +10,7 @@ How to read this report:
 
 | Metric | Value | Relevant circuit | Notes |
 | --- | --- | --- | --- |
-| Final proof size (worst case) | **140 KiB** | [root](#root) | |
+| Final proof size (worst case) | **TODO** | [root](#root) | |
 | Final bits of security | **100 bits** | [app](#app) | Regime: UDR |
 
 ## Circuits
@@ -41,7 +41,7 @@ How to read this report:
 - Number of trace columns: 30000
 - Max interactions per AIR: 1000
 
-**Proof Size:** 24165 KiB (expected) / 24272 KiB (worst case)
+**Proof Size:** TODO
 
 | regime | total | OOD(i=1) | OOD(i=2) | OOD(i=3) | Shift(i=1) | Shift(i=2) | Shift(i=3) | batching | constraint_batching | fin | fold(i=0,s=1) | fold(i=0,s=2) | fold(i=0,s=3) | fold(i=0,s=4) | fold(i=1,s=1) | fold(i=1,s=2) | fold(i=1,s=3) | fold(i=1,s=4) | fold(i=2,s=1) | fold(i=2,s=2) | fold(i=2,s=3) | fold(i=2,s=4) | fold(i=3,s=1) | fold(i=3,s=2) | fold(i=3,s=3) | fold(i=3,s=4) | gkr_batching | gkr_sumcheck | logup | stacked_reduction | zerocheck_sumcheck |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -69,7 +69,7 @@ How to read this report:
 - Number of trace columns: 2000
 - Max interactions per AIR: 100
 
-**Proof Size:** 14775 KiB (expected) / 14840 KiB (worst case)
+**Proof Size:** TODO
 
 | regime | total | OOD(i=1) | OOD(i=2) | Shift(i=1) | Shift(i=2) | batching | constraint_batching | fin | fold(i=0,s=1) | fold(i=0,s=2) | fold(i=0,s=3) | fold(i=0,s=4) | fold(i=1,s=1) | fold(i=1,s=2) | fold(i=1,s=3) | fold(i=1,s=4) | fold(i=2,s=1) | fold(i=2,s=2) | fold(i=2,s=3) | fold(i=2,s=4) | gkr_batching | gkr_sumcheck | logup | stacked_reduction | zerocheck_sumcheck |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -98,7 +98,7 @@ How to read this report:
 - Number of trace columns: 2000
 - Max interactions per AIR: 100
 
-**Proof Size:** 2164 KiB (expected) / 2186 KiB (worst case)
+**Proof Size:** TODO
 
 | regime | total | OOD(i=1) | OOD(i=2) | Shift(i=1) | Shift(i=2) | batching | constraint_batching | fin | fold(i=0,s=1) | fold(i=0,s=2) | fold(i=0,s=3) | fold(i=0,s=4) | fold(i=1,s=1) | fold(i=1,s=2) | fold(i=1,s=3) | fold(i=1,s=4) | fold(i=2,s=1) | fold(i=2,s=2) | fold(i=2,s=3) | fold(i=2,s=4) | gkr_batching | gkr_sumcheck | logup | stacked_reduction | zerocheck_sumcheck |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -127,7 +127,7 @@ How to read this report:
 - Number of trace columns: 2000
 - Max interactions per AIR: 100
 
-**Proof Size:** 121 KiB (expected) / 140 KiB (worst case)
+**Proof Size:** TODO
 
 | regime | total | OOD(i=1) | OOD(i=2) | Shift(i=1) | Shift(i=2) | batching | constraint_batching | fin | fold(i=0,s=1) | fold(i=0,s=2) | fold(i=0,s=3) | fold(i=0,s=4) | fold(i=1,s=1) | fold(i=1,s=2) | fold(i=1,s=3) | fold(i=1,s=4) | fold(i=2,s=1) | fold(i=2,s=2) | fold(i=2,s=3) | fold(i=2,s=4) | gkr_batching | gkr_sumcheck | logup | stacked_reduction | zerocheck_sumcheck |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

@@ -22,6 +22,10 @@ class Circuit(ABC):
     field: FieldParams
     protocol_label: str
 
+    # Set to True when the circuit does not yet expose a full proof-size estimate.
+    # When True, reports render "TODO" for proof size.
+    proof_size_todo: bool = False
+
     def get_name(self) -> str:
         """Returns the name of the circuit."""
         return self.name

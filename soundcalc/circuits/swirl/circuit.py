@@ -22,6 +22,9 @@ class SWIRLCircuitConfig:
 
 
 class SWIRLCircuit(Circuit):
+    # OpenVM2 still misses proof-size formula for SWIRL sumcheck transcripts (GKR, ZeroCheck).
+    proof_size_todo = True
+
     def __init__(self, config: SWIRLCircuitConfig):
         self.name = config.name
         self.pcs = config.pcs
