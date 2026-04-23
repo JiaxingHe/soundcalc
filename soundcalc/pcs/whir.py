@@ -1,6 +1,5 @@
 
 import math
-from typing import Optional
 from dataclasses import dataclass
 
 from soundcalc.common.fields import FieldParams
@@ -304,14 +303,13 @@ class WHIRConfig:
     # agree on the sampled OOD point.
     grinding_bits_ood: list[int]
 
-    # Optional override for the bound *gap*.
-    # (This is useful to pin fixed parameters in TOML configs.)
-    gap_to_radius: Optional[float] = None
 
 class WHIR(PCS):
     """
     WHIR Polynomial Commitment Scheme.
     """
+
+    label = "WHIR"
 
     def __init__(self, config: WHIRConfig):
         """
@@ -331,7 +329,6 @@ class WHIR(PCS):
         self.grinding_bits_queries = config.grinding_bits_queries
         self.num_ood_samples = config.num_ood_samples
         self.grinding_bits_ood = config.grinding_bits_ood
-        self.gap_to_radius = config.gap_to_radius
 
         # Parameter validity checks
 
@@ -486,17 +483,15 @@ class WHIR(PCS):
             )
 
             # sum check (one error for each round)
-            for round in range(1, self.folding_factor + 1):
-                epsilon = self._epsilon_fold(iteration, round, regime)
-                levels[f"fold(i={iteration},s={round})"] = (
+            for round_s in range(1, self.folding_factor + 1):
+                epsilon = self._epsilon_fold(iteration, round_s, regime)
+                levels[f"fold(i={iteration},s={round_s})"] = (
                     get_bits_of_security_from_error(epsilon)
                 )
 
         # final error
         # Construction 5.1: "3. Check final polynomial..."
-        epsilon_final = self._epsilon_final(regime)
-        levels["fin"] = get_bits_of_security_from_error(epsilon_final)
-
+        levels["fin"] = get_bits_of_security_from_error(self._epsilon_final(regime))
         return levels
 
     def _get_code_for_iteration_and_round(
@@ -607,6 +602,23 @@ class WHIR(PCS):
         epsilon = apply_grinding(epsilon, self.grinding_batching_phase)
         return epsilon
 
+    def _epsilon_query(self, iteration: int, regime: ProximityGapsRegime) -> float:
+        """
+        Returns the query-only error (1-delta_i)^{t_i} for the given iteration,
+        including the per-query grinding.
+        """
+
+        assert 0 <= iteration < self.num_iterations, "Iteration out of bounds"
+
+        t = self.num_queries[iteration]
+        delta = self._get_delta_for_iteration(iteration, regime)
+
+        assert 0 < delta < 1.0, f"Invalid delta {delta} for iteration {iteration}"
+
+        epsilon = (1.0 - delta) ** t
+        epsilon = apply_grinding(epsilon, self.grinding_bits_queries[iteration])
+        return epsilon
+
     def _epsilon_fold(
         self, iteration: int, round: int, regime: ProximityGapsRegime
     ) -> float:
@@ -699,21 +711,7 @@ class WHIR(PCS):
         Returns the error epsilon^fin from the paper (Theorem 5.2 in WHIR paper).
         """
 
-        t_final = self.num_queries[-1]
-        grinding_bits = self.grinding_bits_queries[-1]
-
-        # the error is (1-delta_{M-1})^{t_{M-1}}
-        delta = self._get_delta_for_iteration(self.num_iterations - 1, regime)
-
-        # Sanity Check: If delta is 1.0, the code has no redundancy, and security is 0.
-        # (Technically error=0, but this implies a broken config).
-        assert 0 < delta < 1.0, f"Invalid delta {delta} for final round"
-
-        epsilon = (1.0 - delta) ** t_final
-
-        # grinding
-        epsilon = apply_grinding(epsilon, grinding_bits)
-        return epsilon
+        return self._epsilon_query(self.num_iterations - 1, regime)
 
     def _get_log_grinding_overhead(self) -> float:
         """
@@ -889,7 +887,6 @@ class WHIR(PCS):
             "hash_size_bits": self.hash_size_bits,
             "folding_factor": self.folding_factor,
             "batch_size": self.batch_size,
-            "gap_to_radius": self.gap_to_radius,
             "power_batching": self.power_batching,
             "grinding_batching_phase": self.grinding_batching_phase,
             "num_iterations": self.num_iterations,
@@ -919,3 +916,19 @@ class WHIR(PCS):
 
         lines.append("```")
         return "\n".join(lines)
+
+    def get_report_parameter_lines(self) -> list[str]:
+        batching = "Powers" if self.power_batching else "Affine"
+        return [
+            f"- Polynomial commitment scheme: WHIR",
+            f"- Hash size (bits): {self.hash_size_bits}",
+            f"- Field: {self.field.to_string()}",
+            f"- Iterations (M): {self.num_iterations}",
+            f"- Folding factor (k): {self.folding_factor}",
+            f"- Constraint degree: {self.constraint_degree}",
+            f"- Batch size: {self.batch_size}",
+            f"- Batching: {batching}",
+            f"- Queries per iteration: {self.num_queries}",
+            f"- OOD samples per iteration: {self.num_ood_samples}",
+            f"- Total grinding overhead log2: {self.log_grinding_overhead}",
+        ]

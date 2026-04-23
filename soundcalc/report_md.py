@@ -6,16 +6,12 @@ This file is a mess.
 
 from __future__ import annotations
 
-import math
 import os
 from dataclasses import dataclass
 from typing import Any
 
+from soundcalc.circuits.circuit import Circuit
 from soundcalc.common.utils import KIB
-from soundcalc.pcs.fri import FRI
-from soundcalc.pcs.jagged import JaggedPCS
-from soundcalc.pcs.whir import WHIR
-from soundcalc.zkvms.circuit import Circuit
 from soundcalc.zkvms.zkvm import zkVM
 
 
@@ -35,9 +31,11 @@ class zkVMSummary:
     pcs: str
     num_circuits: int
     weakest_circuit_name: str
-    security_bits: int
+    security_bits: float
     security_regime: str
-    final_proof_size_kib: int
+    # None when the final circuit's proof-size estimate is a TODO (see
+    # Circuit.proof_size_todo).
+    final_proof_size_kib: int | None
 
 
 def _compute_overview_stats(circuits: list[Circuit]) -> dict[str, Any]:
@@ -55,7 +53,10 @@ def _compute_overview_stats(circuits: list[Circuit]) -> dict[str, Any]:
         return {}
 
     final_circuit = circuits[-1]
-    final_proof_size_kib = final_circuit.get_proof_size_bits() // KIB
+    if final_circuit.proof_size_todo:
+        final_proof_size_kib = None
+    else:
+        final_proof_size_kib = final_circuit.get_proof_size_bits() // KIB
 
     # Track minimum security per regime
     regime_mins: dict[str, tuple[int, str]] = {}  # regime -> (min_bits, circuit_name)
@@ -94,15 +95,15 @@ def _field_label(field) -> str:
     return "Unknown"
 
 
+def _format_security_value(value: Any) -> str:
+    if isinstance(value, float):
+        return f"{value:.1f}"
+    return str(value)
+
+
 def _pcs_label(circuit: Circuit) -> str:
     """Get the PCS type label for a circuit."""
-    if isinstance(circuit.pcs, FRI):
-        return "FRI"
-    elif isinstance(circuit.pcs, WHIR):
-        return "WHIR"
-    elif isinstance(circuit.pcs, JaggedPCS):
-        return "Jagged + FRI"
-    return "Unknown"
+    return circuit.protocol_label
 
 
 def _collect_zkvm_summary(zkvm: zkVM) -> zkVMSummary:
@@ -150,7 +151,10 @@ def _collect_zkvm_summary(zkvm: zkVM) -> zkVMSummary:
             best_regime = regime_name
             weakest_name = circuit_name
 
-    final_proof_kib = circuits[-1].get_proof_size_bits() // KIB
+    if circuits[-1].proof_size_todo:
+        final_proof_kib = None
+    else:
+        final_proof_kib = int(circuits[-1].get_proof_size_bits() // KIB)
 
     return zkVMSummary(
         name=zkvm.get_name(),
@@ -161,120 +165,13 @@ def _collect_zkvm_summary(zkvm: zkVM) -> zkVMSummary:
         weakest_circuit_name=weakest_name,
         security_bits=best_bits,
         security_regime=best_regime,
-        final_proof_size_kib=int(final_proof_kib),
+        final_proof_size_kib=final_proof_kib,
     )
-
-
-def _fri_parameter_lines(circuit: Circuit) -> list[str]:
-    pcs = circuit.pcs
-    batching = "Powers" if pcs.power_batching else "Affine"
-    lines = [
-        f"- Polynomial commitment scheme: FRI",
-        f"- Hash size (bits): {pcs.hash_size_bits}",
-        f"- Number of queries: {pcs.num_queries}",
-        f"- Grinding query phase (bits): {pcs.grinding_query_phase}",
-    ]
-    if pcs.grinding_commit_phase > 0:
-        lines.append(f"- Grinding commit phase, at every folding round (bits): {pcs.grinding_commit_phase}")
-    if pcs.grinding_batching_phase > 0:
-        lines.append(f"- Grinding batching phase (bits): {pcs.grinding_batching_phase}")
-    if circuit.grinding_deep > 0:
-        lines.append(f"- Grinding DEEP (bits): {circuit.grinding_deep}")
-    lines.extend([
-        f"- Field: {_field_label(pcs.field)}",
-        f"- Rate (ρ): {pcs.rho}",
-        f"- Trace length (H): $2^{{{pcs.h}}}$",
-        f"- FRI rounds: {pcs.FRI_rounds_n}",
-        f"- FRI folding factors: {pcs.FRI_folding_factors}",
-        f"- FRI early stop degree: {pcs.FRI_early_stop_degree}",
-        f"- Number of constraints: {circuit.num_constraints}",
-        f"- Batch size: {pcs.batch_size}",
-        f"- Batching: {batching}",
-    ])
-    return lines
-
-
-def _jagged_parameter_lines(circuit: Circuit) -> list[str]:
-    pcs = circuit.pcs
-    dense_pcs = pcs.dense_pcs
-    batching = "Powers" if dense_pcs.power_batching else "Affine"
-    lines = [
-        f"- Polynomial commitment scheme: Jagged + FRI",
-        f"- Trace length: $2^{{{math.ceil(math.log2(pcs.trace_length))}}}$",
-        f"- Trace width: {pcs.trace_width}",
-        f"- Dense length (inner FRI): $2^{{{dense_pcs.h}}}$",
-        f"- Hash size (bits): {dense_pcs.hash_size_bits}",
-        f"- Number of queries: {dense_pcs.num_queries}",
-        f"- Grinding query phase (bits): {dense_pcs.grinding_query_phase}",
-    ]
-    if dense_pcs.grinding_commit_phase > 0:
-        lines.append(f"- Grinding commit phase, at every folding round (bits): {dense_pcs.grinding_commit_phase}")
-    if dense_pcs.grinding_batching_phase > 0:
-        lines.append(f"- Grinding batching phase (bits): {dense_pcs.grinding_batching_phase}")
-    if circuit.grinding_deep > 0:
-        lines.append(f"- Grinding DEEP (bits): {circuit.grinding_deep}")
-    lines.extend([
-        f"- Field: {_field_label(dense_pcs.field)}",
-        f"- Rate (ρ): {dense_pcs.rho}",
-        f"- FRI rounds: {dense_pcs.FRI_rounds_n}",
-        f"- FRI folding factors: {dense_pcs.FRI_folding_factors}",
-        f"- FRI early stop degree: {dense_pcs.FRI_early_stop_degree}",
-        f"- Number of constraints: {circuit.num_constraints}",
-        f"- Dense batch size: {dense_pcs.batch_size}",
-        f"- Batching: {batching}",
-    ])
-    return lines
-
-
-def _whir_parameter_lines(circuit: Circuit) -> list[str]:
-    pcs = circuit.pcs
-    batching = "Powers" if pcs.power_batching else "Affine"
-    return [
-        f"- Polynomial commitment scheme: WHIR",
-        f"- Hash size (bits): {pcs.hash_size_bits}",
-        f"- Field: {_field_label(pcs.field)}",
-        f"- Iterations (M): {pcs.num_iterations}",
-        f"- Folding factor (k): {pcs.folding_factor}",
-        f"- Constraint degree: {pcs.constraint_degree}",
-        f"- Batch size: {pcs.batch_size}",
-        f"- Batching: {batching}",
-        f"- Queries per iteration: {pcs.num_queries}",
-        f"- OOD samples per iteration: {pcs.num_ood_samples}",
-        f"- Total grinding overhead log2: {pcs.log_grinding_overhead}",
-    ]
-
-
-def _generic_parameter_lines(circuit: Circuit) -> list[str]:
-    lines: list[str] = []
-    lines.append(f"- Polynomial commitment scheme: Unknown")
-    pcs = circuit.pcs
-    if hasattr(pcs, "hash_size_bits"):
-        lines.append(f"- Hash size (bits): {pcs.hash_size_bits}")
-    if hasattr(pcs, "field"):
-        lines.append(f"- Field: {_field_label(pcs.field)}")
-    return lines
-
-
-def _lookup_parameter_lines(circuit: Circuit) -> list[str]:
-    """Get parameter lines for lookups in a circuit."""
-    lines: list[str] = []
-    for lookup in circuit.get_lookups():
-        lines.append(f"- Lookup (logup): {lookup.get_name()}")
-    return lines
 
 
 def _get_parameter_lines(circuit: Circuit) -> list[str]:
     """Get parameter lines for a circuit."""
-    if isinstance(circuit.pcs, FRI):
-        lines = _fri_parameter_lines(circuit)
-    elif isinstance(circuit.pcs, WHIR):
-        lines = _whir_parameter_lines(circuit)
-    elif isinstance(circuit.pcs, JaggedPCS):
-        lines = _jagged_parameter_lines(circuit)
-    else:
-        lines = _generic_parameter_lines(circuit)
-    lines.extend(_lookup_parameter_lines(circuit))
-    return lines
+    return circuit.get_report_parameter_lines()
 
 
 def _build_security_table(results: dict[str, Any], lookup_names: list[str] | None = None) -> str:
@@ -353,12 +250,12 @@ def _build_security_table(results: dict[str, Any], lookup_names: list[str] | Non
         row_values = [row_name]
         if isinstance(row_data, dict):
             for col in columns[1:]:
-                row_values.append(str(row_data.get(col, "—")))
+                row_values.append(_format_security_value(row_data.get(col, "—")))
         else:
             # Non-dict value sits under the 'total' column when present.
             for col in columns[1:]:
                 if col == "total":
-                    row_values.append(str(row_data))
+                    row_values.append(_format_security_value(row_data))
                 else:
                     row_values.append("—")
         md_table += "| " + " | ".join(row_values) + " |\n"
@@ -403,8 +300,10 @@ def _build_zkvm_report(zkvm: zkVM, multi_circuit: bool = False) -> str:
             offending_circuit_link = f"[{offending_circuit}](#{offending_circuit.lower().replace(' ', '-')})"
             lines.append(f"| Metric | Value | Relevant circuit | Notes |")
             lines.append(f"| --- | --- | --- | --- |")
-            lines.append(f"| Final proof size (worst case) | **{int(overview['final_proof_size_kib'])} KiB** | {final_circuit_link} | |")
-            lines.append(f"| Final bits of security | **{overview['min_security_bits']} bits** | {offending_circuit_link} | Regime: {overview['best_regime']} |")
+            final_proof_size_kib = overview['final_proof_size_kib']
+            final_proof_size_str = "**TODO**" if final_proof_size_kib is None else f"**{int(final_proof_size_kib)} KiB**"
+            lines.append(f"| Final proof size (worst case) | {final_proof_size_str} | {final_circuit_link} | |")
+            lines.append(f"| Final bits of security | **{_format_security_value(overview['min_security_bits'])} bits** | {offending_circuit_link} | Regime: {overview['best_regime']} |")
             lines.append("")
 
         lines.append("## Circuits")
@@ -423,9 +322,12 @@ def _build_zkvm_report(zkvm: zkVM, multi_circuit: bool = False) -> str:
             lines.append("")
 
             # Proof size
-            expected_kib = int(circuit.get_expected_proof_size_bits() // KIB)
-            worst_kib = int(circuit.get_proof_size_bits() // KIB)
-            lines.append(f"**Proof Size:** {expected_kib} KiB (expected) / {worst_kib} KiB (worst case)")
+            if circuit.proof_size_todo:
+                lines.append("**Proof Size:** TODO")
+            else:
+                expected_kib = int(circuit.get_expected_proof_size_bits() // KIB)
+                worst_kib = int(circuit.get_proof_size_bits() // KIB)
+                lines.append(f"**Proof Size:** {expected_kib} KiB (expected) / {worst_kib} KiB (worst case)")
             lines.append("")
 
             # Security table
@@ -443,9 +345,12 @@ def _build_zkvm_report(zkvm: zkVM, multi_circuit: bool = False) -> str:
             lines.append("")
 
             # Proof size
-            expected_kib = int(circuit.get_expected_proof_size_bits() // KIB)
-            worst_kib = int(circuit.get_proof_size_bits() // KIB)
-            lines.append(f"**Proof Size:** {expected_kib} KiB (expected) / {worst_kib} KiB (worst case)")
+            if circuit.proof_size_todo:
+                lines.append("**Proof Size:** TODO")
+            else:
+                expected_kib = int(circuit.get_expected_proof_size_bits() // KIB)
+                worst_kib = int(circuit.get_proof_size_bits() // KIB)
+                lines.append(f"**Proof Size:** {expected_kib} KiB (expected) / {worst_kib} KiB (worst case)")
             lines.append("")
 
             # Security table
@@ -473,7 +378,7 @@ def _build_summary_report(zkvms: list[zkVM]) -> str:
         "",
         "How to read this report:",
         "- Click on zkVM names to view detailed individual reports",
-        "- Security shows the best bits of security across regimes (UDR/JBR)",
+        "- Security shows the best bits of security across the reported regimes",
         "",
         "## Overview",
         "",
@@ -489,11 +394,12 @@ def _build_summary_report(zkvms: list[zkVM]) -> str:
     for s in summaries:
         report_filename = f"{s.name.lower().replace(' ', '_')}.md"
         version_str = s.version if s.version else "—"
+        proof_size_str = "TODO" if s.final_proof_size_kib is None else f"{s.final_proof_size_kib} KiB"
         lines.append(
             f"| [{s.name}]({report_filename}) "
             f"| {version_str} "
-            f"| **{s.security_bits}** bits ({s.security_regime}) "
-            f"| {s.final_proof_size_kib} KiB "
+            f"| **{_format_security_value(s.security_bits)}** bits ({s.security_regime}) "
+            f"| {proof_size_str} "
             f"| {s.pcs} | {s.field} | {s.num_circuits} | {s.weakest_circuit_name} |"
         )
 
@@ -501,7 +407,7 @@ def _build_summary_report(zkvms: list[zkVM]) -> str:
         "",
         "## Notes",
         "",
-        "- **Security**: Best bits of security across UDR (Unique Decoding) and JBR (Johnson Bound) regimes",
+        "- **Security**: Best bits of security across the reported regimes",
         "- **Weakest Circuit**: Circuit determining the overall security level",
         "- **Proof Size**: Final proof size in KiB (1 KiB = 1024 bytes)",
         "",
