@@ -32,4 +32,4 @@ How to read this report:
 | regime | total | generic_lookup | range_check_16_lookup | range_check_19_lookup | decoder | ALI | DEEP | batching | commit round 1 | commit round 2 | commit round 3 | commit round 4 | commit round 5 | query phase |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | UDR | 64 | 94 | 99 | 98 | 100 | 114 | 110 | 90 | 106 | 110 | 114 | 118 | 121 | 64 |
-| JBR | 63 | 94 | 99 | 98 | 100 | 109 | 105 | 63 | 78 | 82 | 86 | 90 | 93 | 67 |
+| JBR | 67 | 94 | 99 | 98 | 100 | 109 | 105 | 68 | 83 | 87 | 91 | 95 | 98 | 67 |

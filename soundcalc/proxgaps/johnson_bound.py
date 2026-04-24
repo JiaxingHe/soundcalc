@@ -3,6 +3,32 @@ from typing import Optional
 
 from soundcalc.proxgaps.proxgaps_regime import ProximityGapsRegime
 
+
+def _get_m_from_eta(sqrt_rate: float, eta: float) -> int:
+    """
+    Johnson-bound multiplicity m as a function of the gap η = 1 - √ρ - γ:
+
+        m := max(⌈√ρ / (2η)⌉, 3)
+
+    per BCHKS25 Theorem 1.5 / Theorem 4.2.
+
+    The factor of 2 in the denominator is missing from the statement of BCHKS25 Theorem 4.2,
+    which is a typo confirmed by the paper authors.
+    """
+    assert eta > 0, f"eta must be positive, got {eta}"
+    return max(math.ceil(sqrt_rate / (2 * eta)), 3)
+
+
+def _get_eta_from_m(sqrt_rate: float, m: int) -> float:
+    """
+    Inverse of `_get_m_from_eta`: η = √ρ / (2m). Drops the ⌈·⌉ and max-with-3 of
+    the forward formula, so the caller who pinned m gets exactly the η that
+    corresponds to their m.
+    """
+    assert m >= 1, f"m must be >= 1, got {m}"
+    return sqrt_rate / (2 * m)
+
+
 class JohnsonBoundRegime(ProximityGapsRegime):
     """
     Johnson Bound Regime (JBR).
@@ -37,37 +63,22 @@ class JohnsonBoundRegime(ProximityGapsRegime):
         # We allow m ≥ 1 (not just the m ≥ 3 from Thm 4.2): the lower bound
         # of 3 can be relaxed to 1, as noted in the optimization remark
         # right after Lemma 3.1 of BCHKS25.
-        if explicit_m:
-            self.explicit_m = max(explicit_m, 1)
-        else:
-            self.explicit_m = None
+        if explicit_m is not None:
+            assert explicit_m >= 1, f"m must be >= 1, got {explicit_m}"
+        self.explicit_m = explicit_m
 
     def get_proximity_parameter(self, rate: float, dimension: int) -> float:
         """
-        The proximity parameter is γ from BCHKS25 Theorem 4.2.
-
-        The formulas for m and η are:
-            η := 1 - √ρ - γ                  (gap below the Johnson bound)
-            m := max(⌈√ρ / (2η)⌉, 3)
-
-        Note: the stated m in BCHKS25 Thm 4.2 drops the factor of 2; this is a typo
-        confirmed by the authors. The correct formula matches Thm 1.5.
-
-        This function goes in the opposite direction: we pick a gap (from
-        explicit_m, gap_to_radius, or the heuristic below) and return γ = 1 - √ρ - gap.
+        The proximity parameter γ = 1 - √ρ - η from BCHKS25 Theorem 4.2.
         """
         sqrt_rate = math.sqrt(rate)
 
+        # First let's pick our gap η
         if self.explicit_m:
-            # The caller pinned m, so solve the m-formula above for η.
-            # Dropping the ⌈·⌉ and the max-with-3 (m is given exactly),
-            # m = √ρ / (2η)  ⇒  η = √ρ / (2m), and γ = 1 - √ρ - η below.
-            gap = sqrt_rate / (2 * self.explicit_m)
+            gap = _get_eta_from_m(sqrt_rate, self.explicit_m)
         elif self.gap_to_radius:
-            # gap_to_radius override (primarily for FRI-based systems that want fixed params).
             gap = self.gap_to_radius
         else:
-            # No help was provided from the config, so let's use a heuristic:
             # For large fields, use a tighter gap (closer to Johnson bound) for better
             # query-phase security. For smaller fields, use a more conservative gap.
             if self.field.F > 2**150:
@@ -95,20 +106,15 @@ class JohnsonBoundRegime(ProximityGapsRegime):
 
     def get_m(self, rate: float, dimension: int) -> int:
         """
-        Set m according to Theorem 4.2 of BCHKS25
+        Get m according to Theorem 4.2 of BCHKS25
         """
         if self.explicit_m:
             return self.explicit_m
 
         sqrt_rate = math.sqrt(rate)
         pp = self.get_proximity_parameter(rate, dimension)
-        assert pp < 1 - sqrt_rate
-
-        # Theorem 4.2 of BCHKS25 says:
-        #    m = max{ ceil( sqrt(rate) / (1 - sqrt(rate) - pp) ), 3 }
-        denominator = 1 - sqrt_rate - pp
-        m = math.ceil(sqrt_rate / denominator)
-        return max(m, 3)
+        eta = 1 - sqrt_rate - pp
+        return _get_m_from_eta(sqrt_rate, eta)
 
     def get_error_powers(self, rate: float, dimension: int, num_functions: int) -> float:
         return self.get_error_linear(rate, dimension) * (num_functions - 1)
