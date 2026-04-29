@@ -14,6 +14,7 @@ How to read this report:
 | [Pico](pico.md) | — | **53** bits (JBR) | 281 KiB | FRI | KoalaBear⁴ | 5 | riscv |
 | [SP1](sp1.md) | 6.1.0 | **100** bits (UDR) | 1267 KiB | Jagged + FRI | KoalaBear⁴ | 2 | core |
 | [ZisK](zisk.md) | 0.16.1 | **128** bits (JBR) | 313 KiB | FRI | Goldilocks³ | 44 | Dma |
+| [zkDTVM](zkdtvm.md) | 0.1.0 | **100** bits (UDR) | 1206 KiB | Jagged + FRI | KoalaBear⁴ | 2 | core |
 
 ## Notes
 
